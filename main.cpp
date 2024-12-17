@@ -17,12 +17,10 @@ SDL_Renderer* renderer;
 TTF_Font* font;
 
 std::vector<int> snakeX, snakeY;
-std::vector<int> obstacleX, obstacleY;
 int foodX, foodY,bonusfoodX, bonusfoodY;
-int score = 0,highscore=0;
-int delay =120;
+int score = 0,highscore;
+int delay =150;
 long long int prevtime,currtime;
-
 int direction =3,level;
 
 bool gameOver = false,collision=false;
@@ -102,6 +100,7 @@ void handleInput() {
         }
     }
 }
+
 
 void placeFood() {
     int maxX = (SCREEN_WIDTH / GRID_SIZE);
@@ -201,7 +200,7 @@ void update() {
     if (gameOver && direction==4) {
         score = 0;
         direction=3;
-        delay = 120;
+        delay = 150;
         consumeCount=0;
         gameOver = false;
         snakeX.clear();
@@ -218,7 +217,11 @@ void update() {
     else if(gameOver)
     {
         if(score>=highscore)
+        {
            highscore=score;
+           std::ofstream scorefile("bestscore.txt");
+           scorefile<<highscore;
+        }
         return;
     }
     
@@ -244,6 +247,7 @@ void update() {
     }
 
     newHeadX = (newHeadX + SCREEN_WIDTH) % SCREEN_WIDTH;
+     //newHeadX = newHeadX % SCREEN_WIDTH;
     
 
     snakeX.insert(snakeX.begin(), newHeadX);
@@ -252,7 +256,6 @@ void update() {
      if(newHeadY<60 || newHeadY>SCREEN_HEIGHT-40 )
      {
            collisionchannel= Mix_PlayChannel(-1,collisionSound,0);
-           //SDL_Delay(2000);
            gameOver=true;
      } 
     else if(level==2 || level==3)
@@ -270,7 +273,6 @@ void update() {
        )
        {
           collisionchannel= Mix_PlayChannel(-1,collisionSound,0);
-          //SDL_Delay(2000);
            gameOver=true;
        }
     }
@@ -279,7 +281,6 @@ void update() {
     for (int i = 1; i < snakeX.size(); ++i) {
         if (newHeadX == snakeX[i] && newHeadY == snakeY[i]) {
             collisionchannel= Mix_PlayChannel(-1,collisionSound,0);
-            //SDL_Delay(2000);
             gameOver = true;
         }
     }
@@ -290,7 +291,7 @@ void update() {
         delay-=5;
         else if(level==2)
         delay-=3;
-        if(score>=150)
+        if(score>=150 && level!=3)
         {
         level=3;
         levelchannel= Mix_PlayChannel(-1,bonusSound2,0);
@@ -341,7 +342,6 @@ void update() {
         levelchannel= Mix_PlayChannel(-1,bonusSound2,0);
         delay=120;
         }
-        //bonusChannel2= Mix_PlayChannel(-1,bonusSound2,0);
         bonus=false;
         }
     
@@ -353,14 +353,22 @@ void render() {
 
     if(start==false)
     {
-    SDL_Surface* surface = SDL_LoadBMP("snake_pic.bmp");
+
+    SDL_Surface* surface = SDL_LoadBMP("sky_pic.bmp");
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+    SDL_Rect windowrect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
+    SDL_RenderCopy(renderer, texture, nullptr, &windowrect);
+    SDL_DestroyTexture(texture);
+
+    surface = SDL_LoadBMP("snake_pic.bmp");
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
     SDL_Rect snakerect = {SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2-200 , 200, 150};
     SDL_RenderCopy(renderer, texture, nullptr, &snakerect);
     SDL_DestroyTexture(texture);
 
-    SDL_Color startcolour = {75, 255, 255, 255};
+    SDL_Color startcolour = {250, 100, 100, 255};
     std::string start = "START SNAKE GAME";
     surface = TTF_RenderText_Solid(font, start.c_str(),startcolour );
     texture = SDL_CreateTextureFromSurface(renderer, surface);
@@ -590,12 +598,14 @@ void setup()
        for(int i=0;i<3;i++)
         {
         snakeX.push_back(SCREEN_WIDTH / 2+x);
-        snakeY.push_back(SCREEN_HEIGHT / 2);
+        snakeY.push_back(SCREEN_HEIGHT / 2+40);
         x-=20;
         }
 
     startChannel=Mix_PlayChannel(-1, startSound, 2);
     placeFood();
+    std::ifstream scorefile("bestscore.txt");
+    scorefile>>highscore;
 }
 
 void destroyWindow()
